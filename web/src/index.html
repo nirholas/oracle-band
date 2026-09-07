@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OracleBand: Refuses to let a pool settle at a price the wider market does not recognise</title>
+<meta name="description" content="Refuses to let a pool settle at a price the wider market does not recognise.">
+<link rel="canonical" href="https://oracle-band.pages.dev/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#07080b">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OracleBand">
+<meta property="og:title" content="OracleBand">
+<meta property="og:description" content="Refuses to let a pool settle at a price the wider market does not recognise.">
+<meta property="og:url" content="https://oracle-band.pages.dev/">
+<meta property="og:image" content="https://oracle-band.pages.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OracleBand">
+<meta name="twitter:description" content="Refuses to let a pool settle at a price the wider market does not recognise.">
+<meta name="twitter:image" content="https://oracle-band.pages.dev/og.png">
+
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="alternate" type="text/plain" title="For language models" href="/llms.txt">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"OracleBand","description":"Refuses to let a pool settle at a price the wider market does not recognise.","url":"https://oracle-band.pages.dev","codeRepository":"https://github.com/nirholas/oracle-band","programmingLanguage":"Solidity","runtimePlatform":"Ethereum Virtual Machine","license":"https://opensource.org/licenses/MIT","keywords":"risk, oracle, manipulation-resistance, no-admin","isPartOf":{"@type":"WebSite","name":"HookForge","url":"https://hookforge.pages.dev"}}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <div class="shell masthead__inner">
+    <a class="brand" href="/">OracleBand</a>
+    <nav aria-label="Primary">
+      <a href="#how">How it works</a>
+      <a href="#using">Using it</a>
+      <a href="#deploy">Deploy</a>
+      <a href="https://github.com/nirholas/oracle-band" rel="noopener">GitHub</a>
+      <a href="https://hookforge.pages.dev" rel="noopener">Catalogue</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="shell hero">
+    <p class="eyebrow">Uniswap v4 hook &middot; Risk</p>
+    <h1>OracleBand</h1>
+    <p class="lede">Refuses to let a pool settle at a price the wider market does not recognise.</p>
+    <div class="cta-row">
+      <a class="btn btn--primary" href="https://github.com/nirholas/oracle-band" rel="noopener">Source on GitHub</a>
+      <a class="btn" href="#using">Use it in a pool</a>
+      <a class="btn" href="/hook.json">Manifest JSON</a>
+    </div>
+
+    <div class="scene">
+      <canvas data-permissions="{&quot;afterRemoveLiquidityReturnsDelta&quot;:false,&quot;afterAddLiquidityReturnsDelta&quot;:false,&quot;afterSwapReturnsDelta&quot;:false,&quot;beforeSwapReturnsDelta&quot;:false,&quot;afterDonate&quot;:false,&quot;beforeDonate&quot;:false,&quot;afterSwap&quot;:true,&quot;beforeSwap&quot;:true,&quot;afterRemoveLiquidity&quot;:false,&quot;beforeRemoveLiquidity&quot;:false,&quot;afterAddLiquidity&quot;:false,&quot;beforeAddLiquidity&quot;:false,&quot;afterInitialize&quot;:true,&quot;beforeInitialize&quot;:false}" aria-hidden="true"></canvas>
+      <p class="scene__fallback">OracleBand implements 3 of the fourteen Uniswap v4 callbacks: afterInitialize, beforeSwap, afterSwap.</p>
+    </div>
+
+    <dl class="stats">
+      <div class="stat"><dt>Family</dt><dd>Risk</dd></div>
+      <div class="stat"><dt>Callbacks</dt><dd>3 of 14</dd></div>
+      <div class="stat"><dt>Fee</dt><dd>static</dd></div>
+      <div class="stat"><dt>Admin keys</dt><dd>none</dd></div>
+      <div class="stat"><dt>Licence</dt><dd>MIT</dd></div>
+    </dl>
+  </section>
+
+  <section class="shell">
+    <h2 id="how">How it works</h2>
+      <p>A thin pool can be walked anywhere. Buy through the last tick of liquidity and the pool will quote you a price no other venue would, and whatever reads that pool afterwards, a lending market, a vault, another pool's oracle, inherits the number. The pool is not wrong: it faithfully reports what it was paid.</p>
+      <p>It is simply alone. This hook gives the pool a second opinion. Before and after every swap it compares the pool price against a reference from an {IPriceOracle} and rejects the swap if the result lands outside a band around it: deviation = |poolPrice / referencePrice - 1|, rejected when deviation &gt; maxDeviationBps The check runs on both sides of the swap, and the pair is what makes it hard to defeat.</p>
+      <p>The `beforeSwap` check refuses to trade from a price that is already outside the band, so a pool pushed out of line in one transaction cannot be traded against in the next. The `afterSwap` check refuses to leave the pool outside the band, which is what stops the walk in the first place. Neither check can be satisfied by splitting a large swap into small ones, because the constraint is on the resulting price rather than on the size of the trade.</p>
+      <p>Prices are compared in `sqrtPriceX96`, squared back through `FullMath` so the comparison is on the actual price ratio and not on an approximation of it that drifts as the deviation grows. Liquidity operations are untouched. A provider can always withdraw, including while the band is refusing swaps, which is the property that makes it safe to sit behind one.</p>
+      <p>The obvious objection: this makes the pool depend on an oracle, and oracles fail. So the hook treats failure as refusal rather than as permission. A feed older than `maxStaleness` halts swapping instead of waving it through, and a feed that reverts propagates rather than being caught.</p>
+      <p>A pool that would rather trade blind than not trade should not use this hook, and the fee-based hooks in this catalogue are the oracle-free alternative.</p>
+
+    <div class="callout callout--prior"><h3>Prior art</h3><p>Oracle-deviation checks exist inside individual protocols, and Detox uses Pyth to detect MEV and redirect it. Both act after the fact, on a pool that has already printed the price. Enforcing the band as a precondition on both sides of the swap, so the out-of-band price is never written at all, is what is new here.</p></div>
+    <div class="callout callout--warn"><h3>Where it does not help</h3><p>The pool inherits the oracle's liveness. If the feed stops, swapping stops, and on a chain where the feed updates on a deviation threshold rather than a heartbeat, a quiet market can look stale. Set maxStaleness against the feed's actual publication cadence, not against how fresh you would like it to be.</p></div>
+
+    <h2 id="using">Using it</h2>
+    <p>
+      Uniswap v4 removed <code>hookData</code> from <code>initialize</code>, so per-pool parameters arrive out of band.
+      Fix them for a pool key whose pool does not exist yet, then initialize. Nobody can change them afterwards,
+      including you.
+    </p>
+    <pre><code>hook.configure(
+    key,
+    OracleBandHook.Config({
+        oracle: /* address */ 0,
+        maxDeviationBps: /* uint32 */ 0,
+        maxStaleness: /* uint32 */ 0
+    })
+);
+
+poolManager.initialize(key, startingSqrtPriceX96);</code></pre>
+    
+
+    <h3>Parameters</h3>
+    <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Units</th></tr></thead>
+        <tbody><tr><td><code>oracle</code></td><td><code>address</code></td><td></td></tr>
+          <tr><td><code>maxDeviationBps</code></td><td><code>uint32</code></td><td>basis points (<code>10000</code> = 100%)</td></tr>
+          <tr><td><code>maxStaleness</code></td><td><code>uint32</code></td><td></td></tr></tbody>
+      </table>
+
+    <h3>From TypeScript</h3>
+    <pre><code>npm i @hookforge/sdk
+
+import {getHook, hookAddress, poolKeyFor} from "@hookforge/sdk";
+
+const hook = getHook("oracle-band");
+const key  = poolKeyFor({
+  hook: hookAddress("oracle-band", 8453),   // Base
+  currencyA: USDC, currencyB: WETH,
+  tickSpacing: 60,
+});</code></pre>
+
+    <h2>What it reverts with</h2>
+    <table>
+        <thead><tr><th>Error</th><th>Meaning</th></tr></thead>
+        <tbody><tr><td><code>InvalidConfig()</code></td><td><code>maxDeviationBps</code> or <code>maxStaleness</code> was zero, or no oracle was given.</td></tr>
+          <tr><td><code>OutsideBand(uint256,uint32)</code></td><td>The pool price is outside the band around the reference.</td></tr>
+          <tr><td><code>PoolAlreadyInitialized()</code></td><td>The pool already exists, so its configuration is final.</td></tr>
+          <tr><td><code>PoolNotConfigured()</code></td><td>The pool was initialized without a configuration for this hook.</td></tr>
+          <tr><td><code>ReferenceStale(uint256,uint32)</code></td><td>The reference price is older than the pool tolerates, so the pool declines to trade.</td></tr></tbody>
+      </table>
+
+    <h2>The callbacks it claims</h2>
+    <p>
+      Uniswap v4 reads a hook's permissions from the low fourteen bits of its own address, which is why deploying one
+      means mining a CREATE2 salt. This hook claims 3, so every deployment of it has an address ending
+      in <code>0x10c0</code>.
+    </p>
+    <ul class="flags"><li class="flag">beforeInitialize</li><li class="flag flag--on">afterInitialize</li><li class="flag">beforeAddLiquidity</li><li class="flag">afterAddLiquidity</li><li class="flag">beforeRemoveLiquidity</li><li class="flag">afterRemoveLiquidity</li><li class="flag flag--on">beforeSwap</li><li class="flag flag--on">afterSwap</li><li class="flag">beforeDonate</li><li class="flag">afterDonate</li><li class="flag">beforeSwapReturnsDelta</li><li class="flag">afterSwapReturnsDelta</li><li class="flag">afterAddLiquidityReturnsDelta</li><li class="flag">afterRemoveLiquidityReturnsDelta</li></ul>
+
+    <h2>It says what it is, on-chain</h2>
+    <p>
+      Nothing about a hook's address tells an indexer, a wallet, a router or an agent what the pool does, which is why
+      hook discovery today is a curated list. This hook answers for itself, in one <code>eth_call</code>, with no
+      registry in the loop.
+    </p>
+    <pre><code>cast call $HOOK "hookName()(string)"    # OracleBand
+cast call $HOOK "specURI()(string)"     # https://oracle-band.pages.dev/hook.json
+cast call $HOOK "hookTags()(string[])"  # risk, oracle, manipulation-resistance, no-admin</code></pre>
+
+    <h2 id="deploy">Build, test and deploy</h2>
+    <pre><code>git clone --recurse-submodules https://github.com/nirholas/oracle-band
+cd oracle-band
+forge build &amp;&amp; forge test
+
+# Dry run: mines the salt, prints the address, sends nothing.
+forge script script/Deploy.s.sol --rpc-url $RPC_URL
+
+# For real.
+forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast --verify</code></pre>
+
+    <div class="callout callout--warn">
+      <h3>Status</h3>
+      <p>
+        <strong>Unaudited.</strong> Built to an audited shape, on OpenZeppelin's audited hook bases, and tested against
+        a real <code>PoolManager</code>. No third party has reviewed it. Read "where it does not help" above before
+        putting money behind it. Not affiliated with Uniswap Labs.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="shell">
+    <p>
+      <a href="https://github.com/nirholas/oracle-band" rel="noopener">Source</a> &middot;
+      <a href="/hook.json">Manifest</a> &middot;
+      <a href="/llms.txt">llms.txt</a> &middot;
+      <a href="https://hookforge.pages.dev" rel="noopener">The rest of the catalogue</a>
+    </p>
+    <p>MIT licensed. Not affiliated with Uniswap Labs.</p>
+  </div>
+</footer>
+<script type="module" src="/assets/scene.js"></script>
+</body>
+</html>

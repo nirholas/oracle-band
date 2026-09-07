@@ -1,0 +1,29 @@
+{
+  "name": "oracle-band",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Refuses to let a pool settle at a price the wider market does not recognise.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nirholas/oracle-band.git"
+  },
+  "homepage": "https://oracle-band.pages.dev",
+  "keywords": [
+    "uniswap",
+    "uniswap-v4",
+    "uniswap-hooks",
+    "defi",
+    "amm",
+    "solidity",
+    "risk",
+    "oracle",
+    "manipulation-resistance",
+    "no-admin"
+  ],
+  "scripts": {
+    "build": "node web/build.mjs",
+    "contracts:build": "forge build",
+    "contracts:test": "forge test"
+  }
+}
